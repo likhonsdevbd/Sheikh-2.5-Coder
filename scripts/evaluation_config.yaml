@@ -1,0 +1,271 @@
+# Sheikh-2.5-Coder Comprehensive Evaluation Configuration
+# Configuration for all evaluation benchmarks and testing procedures
+
+evaluation:
+  model_settings:
+    device: "auto"
+    dtype: "float16"
+    trust_remote_code: true
+    max_new_tokens: 512
+    temperature: 0.7
+    top_p: 0.9
+    do_sample: true
+    
+  # Performance targets for each benchmark
+  targets:
+    mmlu_code_accuracy: 0.60  # >60% target
+    humaneval_pass1: 0.40     # >40% Pass@1 target
+    codebleu_score: 0.65      # >0.65 target
+    syntax_validity: 0.95     # >95% target
+    web_dev_quality: 0.75     # Target quality score
+    
+  # MMLU Code benchmark settings
+  mmlu_evaluation:
+    dataset: "lukaemon/mmlu"
+    subset: "code"
+    max_test_samples: 200     # Limit for computational efficiency
+    batch_size: 8
+    prompt_template: |
+      Question: {question}
+      Options:
+      A) {choice_a}
+      B) {choice_b}
+      C) {choice_c}
+      D) {choice_d}
+      Answer: {answer}
+    evaluation_metrics:
+      - accuracy
+      - confusion_matrix
+      - response_time
+    
+  # HumanEval coding benchmark settings
+  humaneval_evaluation:
+    dataset: "openai_humaneval"
+    max_samples: 100
+    timeout_seconds: 60
+    temperature: 0.8
+    pass_at_k: [1, 10]  # Pass@1 and Pass@10
+    languages:
+      - python
+    evaluation_metrics:
+      - pass_at_1
+      - pass_at_k
+      - function_correctness
+      - code_syntax_validity
+      
+  # MBPP (Mostly Basic Python Problems) settings
+  mbpp_evaluation:
+    dataset: "google-research-datasets/mbpp"
+    subset: "basic"
+    max_samples: 50
+    evaluation_metrics:
+      - function_completion
+      - test_pass_rate
+      - code_complexity
+      
+  # CodeBLEU quality assessment settings
+  codebleu_evaluation:
+    reference_datasets:
+      - "github_code_examples"
+    evaluation_metrics:
+      - codebleu_score
+      - semantic_similarity
+      - structure_similarity
+    weights:
+      ngram_match: 0.4
+      weighted_ngram_match: 0.2
+      syntax_match: 0.2
+      semantic_match: 0.2
+      
+  # Web development specific test settings
+  web_dev_tests:
+    javascript_typescript:
+      tasks:
+        - "Create a responsive navbar component"
+        - "Implement form validation with error handling"
+        - "Build a React component with hooks"
+        - "Create an async data fetching service"
+        - "Implement event-driven DOM manipulation"
+      quality_criteria:
+        syntax_validity: 0.9
+        feature_completeness: 0.8
+        code_style: 0.7
+        best_practices: 0.8
+        
+    xml_configuration:
+      test_files:
+        - "web.config"
+        - "pom.xml"
+        - "build.gradle"
+        - "package.json"
+        - "webpack.config.js"
+      validation_criteria:
+        schema_compliance: 0.95
+        structure_validity: 0.95
+        
+    mdx_documentation:
+      components:
+        - "getStarted"
+        - "apiReference"
+        - "codeExamples"
+        - "troubleshooting"
+      quality_metrics:
+        markdown_syntax: 0.95
+        content_completeness: 0.8
+        readability_score: 0.75
+        
+    react_components:
+      test_components:
+        - "Button"
+        - "Modal"
+        - "DataTable"
+        - "Form"
+        - "Navigation"
+      evaluation_aspects:
+        jsx_validity: 0.95
+        prop_usage: 0.8
+        state_management: 0.8
+        accessibility: 0.7
+        
+    css_styling:
+      test_categories:
+        - "responsive_design"
+        - "animations"
+        - "layout_systems"
+        - "component_styles"
+      quality_metrics:
+        css_validity: 0.95
+        browser_compatibility: 0.9
+        performance_impact: 0.8
+        
+  # Performance benchmark settings
+  performance_benchmark:
+    inference_speed:
+      test_prompts:
+        - "Write a Python function to calculate fibonacci numbers"
+        - "Create a React component for user authentication"
+        - "Generate SQL query to find duplicate records"
+      iterations: 100
+      warmup_iterations: 10
+      batch_sizes: [1, 2, 4, 8]
+      max_tokens: [32, 64, 128, 256]
+      metrics:
+        - tokens_per_second
+        - latency_ms
+        - throughput
+        - memory_usage_mb
+        
+    memory_profiling:
+      quantization_levels:
+        - "fp16"
+        - "int8"
+        - "int4"
+      measurements:
+        - peak_memory_mb
+        - average_memory_mb
+        - memory_efficiency
+        
+    context_scaling:
+      context_lengths:
+        - 512
+        - 1024
+        - 2048
+        - 4096
+      metrics:
+        - degradation_score
+        - performance_scaling
+        
+    multi_threading:
+      thread_counts: [1, 2, 4, 8]
+      metrics:
+        - speedup_ratio
+        - scalability_score
+        
+  # Code quality assessment settings
+  code_quality_tests:
+    syntax_validity:
+      languages:
+        - "python"
+        - "javascript"
+        - "typescript"
+        - "html"
+        - "css"
+        - "xml"
+      metrics:
+        - syntax_error_rate
+        - compilation_success_rate
+        
+    complexity_analysis:
+      cyclomatic_complexity: 3.0   # Target threshold
+      nesting_depth: 4             # Max nesting depth
+      function_length: 50          # Max lines per function
+      class_size: 200              # Max lines per class
+      
+    best_practices:
+      python:
+        - "PEP8_compliance"
+        - "docstring_coverage"
+        - "type_hints"
+        - "error_handling"
+      javascript:
+        - "ES6_features"
+        - "async_patterns"
+        - "component_patterns"
+        - "testing_coverage"
+        
+  # Regression testing settings
+  regression_testing:
+    baseline_models:
+      - "previous_version"
+      - "parent_model"
+    comparison_metrics:
+      - "bleu_score"
+      - "rouge_score"
+      - "bert_score"
+      - "meteor_score"
+    statistical_tests:
+      - "t_test"
+      - "wilcoxon_test"
+    degradation_thresholds:
+      accuracy: 0.05     # 5% acceptable degradation
+      performance: 0.1    # 10% performance degradation
+      
+  # Reporting and visualization settings
+  reporting:
+    output_formats:
+      - "json"
+      - "csv"
+      - "markdown"
+      - "html"
+      - "pdf"
+    visualizations:
+      - "performance_charts"
+      - "comparison_plots"
+      - "distribution_plots"
+      - "confusion_matrices"
+    continuous_integration:
+      compare_baseline: true
+      auto_approve_threshold: 0.95
+      notify_failures: true
+      
+  # Dataset paths and caching
+  dataset_paths:
+    mmlu_cache: "./cache/mmlu"
+    humaneval_cache: "./cache/humaneval"
+    mbpp_cache: "./cache/mbpp"
+    web_dev_cache: "./cache/web_dev"
+    
+  # Logging and monitoring
+  logging:
+    level: "INFO"
+    log_file: "./logs/evaluation.log"
+    metrics_file: "./logs/metrics.log"
+    save_intermediate: true
+    debug_mode: false
+    
+  # Hardware configuration
+  hardware:
+    gpu_memory_fraction: 0.8
+    cpu_threads: 4
+    timeout_per_test: 300  # seconds
+    retry_attempts: 3

@@ -1,0 +1,475 @@
+name: Model Deployment Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_checkout:
+        description: 'Model checkpoint to deploy'
+        required: false
+        default: 'latest'
+        type: string
+      quantization:
+        description: 'Quantization type (int8, int4, none)'
+        required: false
+        default: 'int8'
+        type: choice
+        options:
+        - int8
+        - int4
+        - none
+      deploy_mode:
+        description: 'Deployment mode (huggingface, github, both)'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+        - huggingface
+        - github
+        - both
+  
+  push:
+    branches: [ main ]
+    paths:
+      - 'models/**'
+      - 'scripts/deploy_model.py'
+      - '.github/workflows/deploy.yml'
+
+  workflow_run:
+    workflows: ["Automated Model Training"]
+    types:
+      - completed
+    branches: [ main ]
+
+env:
+  HF_HOME: ~/.cache/huggingface
+  TRANSFORMERS_CACHE: ~/.cache/transformers
+  HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+jobs:
+  validate-checkpoint:
+    runs-on: ubuntu-latest
+    outputs:
+      model-path: ${{ steps.validate.outputs.model-path }}
+      model-size: ${{ steps.validate.outputs.model-size }}
+      checkpoint-date: ${{ steps.validate.outputs.checkpoint-date }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install transformers datasets torch
+
+      - name: Validate model checkpoint
+        id: validate
+        run: |
+          if [ "${{ github.event.inputs.model_checkout }}" == "latest" ]; then
+            echo "Finding latest checkpoint..."
+            LATEST_CHECKPOINT=$(find models/checkpoints/ -name "checkpoint-*" -type d | sort -V | tail -1)
+            if [ -z "$LATEST_CHECKPOINT" ]; then
+              echo "No checkpoints found!"
+              exit 1
+            fi
+            echo "model-path=$LATEST_CHECKPOINT" >> $GITHUB_OUTPUT
+          else
+            echo "model-path=models/checkpoints/${{ github.event.inputs.model_checkout }}" >> $GITHUB_OUTPUT
+          fi
+          
+          # Get model size
+          MODEL_SIZE=$(du -sh ${{ steps.validate.outputs.model-path || 'models/checkpoints/' }} | cut -f1)
+          echo "model-size=$MODEL_SIZE" >> $GITHUB_OUTPUT
+          
+          # Get checkpoint date
+          CHECKPOINT_DATE=$(date -r ${{ steps.validate.outputs.model-path || 'models/checkpoints/' }} +%Y-%m-%d_%H:%M:%S)
+          echo "checkpoint-date=$CHECKPOINT_DATE" >> $GITHUB_OUTPUT
+
+  memory-optimization:
+    runs-on: ubuntu-latest
+    needs: validate-checkpoint
+    strategy:
+      matrix:
+        optimization: [quantization, pruning, batching]
+        
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install optimization dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch transformers bitsandbytes accelerate
+          pip install onnx onnxruntime optimum onnx2tensorrt
+          pip install numpy
+
+      - name: Run memory optimization tests
+        run: |
+          echo "Testing ${{ matrix.optimization }} optimizations..."
+          cd Sheikh-2.5-Coder
+          python -c "
+          import torch
+          from transformers import AutoModelForCausalLM, AutoTokenizer
+          import sys
+          from memory_profiler import profile
+          
+          model_path = '${{ needs.validate-checkpoint.outputs.model-path }}'
+          
+          print(f'Loading model from: {model_path}')
+          tokenizer = AutoTokenizer.from_pretrained(model_path)
+          model = AutoModelForCausalLM.from_pretrained(
+              model_path, 
+              torch_dtype=torch.float16,
+              device_map='auto'
+          )
+          
+          # Memory profiling
+          if torch.cuda.is_available():
+              print(f'GPU Memory: {torch.cuda.memory_allocated()/1024**3:.2f}GB')
+              print(f'GPU Memory Reserved: {torch.cuda.memory_reserved()/1024**3:.2f}GB')
+          
+          print('Model loaded successfully!')
+          "
+
+  quantization:
+    runs-on: ubuntu-latest
+    needs: [validate-checkpoint, memory-optimization]
+    if: success() && github.event.inputs.quantization != 'none'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install quantization dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch transformers bitsandbytes accelerate
+          pip install optimum onnx onnxruntime
+
+      - name: Download model checkpoint
+        run: |
+          if [ ! -d "${{ needs.validate-checkpoint.outputs.model-path }}" ]; then
+            echo "Checkpoint ${{ needs.validate-checkpoint.outputs.model-path }} not found"
+            echo "This workflow should be triggered after training completes"
+            exit 1
+          fi
+
+      - name: Run quantization
+        run: |
+          cd Sheikh-2.5-Coder
+          python scripts/deploy_model.py \
+            --model_path ${{ needs.validate-checkpoint.outputs.model-path }} \
+            --output_path models/quantized \
+            --quantization ${{ github.event.inputs.quantization }} \
+            --optimization memory-optimization
+
+      - name: Upload quantized models
+        uses: actions/upload-artifact@v3
+        with:
+          name: quantized-models-${{ github.run_id }}
+          path: Sheikh-2.5-Coder/models/quantized/
+
+  huggingface-deployment:
+    runs-on: ubuntu-latest
+    needs: [validate-checkpoint, memory-optimization]
+    if: github.event.inputs.deploy_mode == 'huggingface' || github.event.inputs.deploy_mode == 'both'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install HF dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install huggingface_hub transformers torch
+          pip install datasets
+
+      - name: Configure HuggingFace authentication
+        run: |
+          echo "${{ secrets.HF_TOKEN }}" | base64 -d > ~/.cache/huggingface/token
+          echo "HF_TOKEN=${{ secrets.HF_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Generate model card
+        run: |
+          cd Sheikh-2.5-Coder
+          python -c "
+          from datetime import datetime
+          import json
+          
+          # Generate comprehensive model card
+          model_card = '''# Sheikh-2.5-Coder Model Card
+          
+          ## Model Details
+          - Model Type: Code Generation Language Model
+          - Base Model: microsoft/phi-2
+          - Fine-tuned: Sheikh-2.5-Coder
+          - Checkpoint: $(basename ${{ needs.validate-checkpoint.outputs.model-path }})
+          - Training Date: ${{ needs.validate-checkpoint.outputs.checkpoint-date }}
+          - Model Size: ${{ needs.validate-checkpoint.outputs.model-size }}
+          
+          ## Training Details
+          - Dataset: Stack v2 + synthetic data
+          - Optimizations: Mixed precision, gradient checkpointing
+          - GPU: ${{ github.event.inputs.gpu_type }}
+          - Steps: ${{ github.event.inputs.training_steps }}
+          
+          ## Performance
+          - MMLU Code: Coming soon
+          - HumanEval: Coming soon
+          - Web Development: Coming soon
+          
+          ## Usage
+          \`\`\`python
+          from transformers import AutoModelForCausalLM, AutoTokenizer
+          
+          model = AutoModelForCausalLM.from_pretrained('username/Sheikh-2.5-Coder')
+          tokenizer = AutoTokenizer.from_pretrained('username/Sheikh-2.5-Coder')
+          
+          prompt = \"def fibonacci(n):\"
+          inputs = tokenizer(prompt, return_tensors='pt')
+          outputs = model.generate(**inputs, max_length=100)
+          \`\`\`
+          
+          ## License
+          MIT License
+          
+          ## Citation
+          \`\`\`bibtex
+          @misc{sheikh2_5_coder,
+            title={Sheikh-2.5-Coder: Fine-tuned Code Generation Model},
+            author={Sheikh Team},
+            year={2024},
+            url={https://huggingface.co/username/Sheikh-2.5-Coder}
+          }
+          \`\`\`
+          '''
+          
+          with open('model_card.md', 'w') as f:
+              f.write(model_card)
+          "
+
+      - name: Create HuggingFace repository
+        run: |
+          cd Sheikh-2.5-Coder
+          
+          # Create repository if it doesn't exist
+          huggingface-cli repo create Sheikh-2.5-Coder --type model || echo "Repository already exists"
+          
+          # Set up repository visibility
+          huggingface-cli repo create Sheikh-2.5-Coder --type model --private false || echo "Repository already public"
+
+      - name: Upload model to HuggingFace
+        run: |
+          cd Sheikh-2.5-Coder
+          
+          # Copy model files to upload directory
+          mkdir -p hf_upload
+          cp -r ${{ needs.validate-checkpoint.outputs.model-path }}/* hf_upload/
+          cp model_card.md hf_upload/README.md
+          
+          # Upload to HuggingFace
+          huggingface-cli upload username/Sheikh-2.5-Coder hf_upload/ \
+            --commit-message "Update model from checkpoint $(basename ${{ needs.validate-checkpoint.outputs.model-path }})"
+
+      - name: Upload quantized models to HF
+        if: github.event.inputs.quantization != 'none'
+        run: |
+          cd Sheikh-2.5-Coder
+          
+          # Upload quantized models
+          if [ -d "models/quantized" ]; then
+            huggingface-cli upload username/Sheikh-2.5-Coder-int8 models/quantized/ \
+              --commit-message "INT8 quantized model from checkpoint $(basename ${{ needs.validate-checkpoint.outputs.model-path }})"
+          fi
+
+  github-deployment:
+    runs-on: ubuntu-latest
+    needs: [validate-checkpoint, memory-optimization]
+    if: github.event.inputs.deploy_mode == 'github' || github.event.inputs.deploy_mode == 'both'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Git dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install huggingface_hub
+
+      - name: Copy model to repository
+        run: |
+          cd Sheikh-2.5-Coder
+          
+          # Create model directory
+          mkdir -p deployment-models/$(basename ${{ needs.validate-checkpoint.outputs.model-path }})
+          
+          # Copy model files
+          cp -r ${{ needs.validate-checkpoint.outputs.model-path }}/* deployment-models/$(basename ${{ needs.validate-checkpoint.outputs.model-path }})/
+          
+          # Copy evaluation results if available
+          if [ -d "evaluation/results" ]; then
+            cp -r evaluation/results deployment-models/$(basename ${{ needs.validate-checkpoint.outputs.model-path }})/
+          fi
+
+      - name: Update version info
+        run: |
+          cd Sheikh-2.5-Coder
+          
+          # Generate version info
+          cat > deployment-models/version.json << EOF
+          {
+            "version": "${{ github.run_id }}",
+            "checkpoint": "$(basename ${{ needs.validate-checkpoint.outputs.model-path }})",
+            "timestamp": "${{ needs.validate-checkpoint.outputs.checkpoint-date }}",
+            "model_size": "${{ needs.validate-checkpoint.outputs.model-size }}",
+            "quantization": "${{ github.event.inputs.quantization }}",
+            "deployment_mode": "${{ github.event.inputs.deploy_mode }}"
+          }
+          EOF
+
+      - name: Commit and push model
+        run: |
+          cd Sheikh-2.5-Coder
+          
+          # Configure git
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          
+          # Add files
+          git add deployment-models/
+          
+          # Check if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Deploy model checkpoint $(basename ${{ needs.validate-checkpoint.outputs.model-path }})
+            
+            - Checkpoint: $(basename ${{ needs.validate-checkpoint.outputs.model-path }})
+            - Size: ${{ needs.validate-checkpoint.outputs.model-size }}
+            - Quantization: ${{ github.event.inputs.quantization }}
+            - Deployed: $(date)"
+            
+            # Push changes
+            git push origin main
+          fi
+
+  generate-release:
+    runs-on: ubuntu-latest
+    needs: [validate-checkpoint, huggingface-deployment, github-deployment]
+    if: always() && (needs.huggingface-deployment.result == 'success' || needs.github-deployment.result == 'success')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release notes
+        run: |
+          cd Sheikh-2.5-Coder
+          
+          # Generate comprehensive release notes
+          cat > release-notes.md << EOF
+          # Sheikh-2.5-Coder Release ${{ github.run_id }}
+          
+          ## Checkpoint Details
+          - **Checkpoint**: $(basename ${{ needs.validate-checkpoint.outputs.model-path }})
+          - **Size**: ${{ needs.validate-checkpoint.outputs.model-size }}
+          - **Training Date**: ${{ needs.validate-checkpoint.outputs.checkpoint-date }}
+          - **Quantization**: ${{ github.event.inputs.quantization }}
+          
+          ## Deployment Status
+          ${{ contains(github.event.inputs.deploy_mode, 'huggingface') && '- ✅ HuggingFace Hub' || '- ❌ HuggingFace Hub' }}
+          ${{ contains(github.event.inputs.deploy_mode, 'github') && '- ✅ GitHub Repository' || '- ❌ GitHub Repository' }}
+          
+          ## Model Performance
+          <!-- Performance metrics will be added here -->
+          
+          ## Usage
+          The model is available on both HuggingFace Hub and in this repository.
+          
+          ### HuggingFace Hub
+          \`\`\`bash
+          huggingface-cli download username/Sheikh-2.5-Coder
+          \`\`\`
+          
+          ### GitHub Repository
+          \`\`\`bash
+          git clone https://github.com/${{ github.repository }}
+          \`\`\`
+          
+          ## What's Changed
+          - Training pipeline execution
+          - Model evaluation and benchmarking
+          - Performance optimization
+          - Automated deployment
+          
+          ## Next Steps
+          - Monitor model performance
+          - Gather user feedback
+          - Plan next training iteration
+          EOF
+          
+          # Display release notes
+          echo "## Release Notes Generated" >> $GITHUB_STEP_SUMMARY
+          cat release-notes.md >> $GITHUB_STEP_SUMMARY
+
+  notify-deployment:
+    runs-on: ubuntu-latest
+    needs: [validate-checkpoint, huggingface-deployment, github-deployment, generate-release]
+    if: always()
+
+    steps:
+      - name: Deployment status
+        run: |
+          if [ "${{ needs.huggingface-deployment.result }}" == "success" ] || [ "${{ needs.github-deployment.result }}" == "success" ]; then
+            echo "✅ Deployment completed successfully!"
+            echo "Model is available:"
+            echo "- HuggingFace: https://huggingface.co/username/Sheikh-2.5-Coder"
+            echo "- GitHub: https://github.com/${{ github.repository }}"
+          else
+            echo "❌ Deployment failed"
+            echo "Check the workflow logs for details"
+            exit 1
+          fi

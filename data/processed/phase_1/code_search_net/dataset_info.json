@@ -1,0 +1,34 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "total_code_comment_pairs": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "language_breakdown": {
+      "javascript": {
+        "dtype": "int64",
+        "_type": "Value"
+      },
+      "typescript": {
+        "dtype": "int64",
+        "_type": "Value"
+      }
+    },
+    "similarity_filtered": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "cat_pipeline_applied": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "web_context_added": {
+      "dtype": "int64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}

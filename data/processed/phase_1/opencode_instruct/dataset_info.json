@@ -1,0 +1,38 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "total_instruction_pairs": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "language_distribution": {
+      "javascript_typescript": {
+        "dtype": "float64",
+        "_type": "Value"
+      },
+      "mdx": {
+        "dtype": "float64",
+        "_type": "Value"
+      },
+      "other": {
+        "dtype": "float64",
+        "_type": "Value"
+      },
+      "xml": {
+        "dtype": "float64",
+        "_type": "Value"
+      }
+    },
+    "quality_filtered_pairs": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "unit_test_validation_passed": {
+      "dtype": "int64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}

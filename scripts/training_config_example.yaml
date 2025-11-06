@@ -1,0 +1,271 @@
+# Training Configuration for Sheikh-2.5-Coder
+# This file contains all training parameters and settings
+
+# Model Configuration
+model:
+  base_model: "microsoft/phi-2"
+  target_parameters: 400_000_000
+  context_length: 32768
+  vocab_size: 51200
+  hidden_size: 2048
+  num_hidden_layers: 32
+  num_attention_heads: 32
+  intermediate_size: 8192
+  max_position_embeddings: 32768
+  layer_norm_epsilon: 1e-5
+  use_cache: true
+  use_flash_attention: false
+  gradient_checkpointing: true
+  use_projection_bias: true
+  use_projection_head: true
+  additional_special_tokens:
+    - "<xml>"
+    - "</xml>"
+    - "<mdx>"
+    - "</mdx>"
+    - "<component>"
+    - "</component>"
+    - "<script>"
+    - "</script>"
+    - "<style>"
+    - "</style>"
+    - "<template>"
+    - "</template>"
+
+# Training Configuration
+training:
+  num_epochs: 3
+  batch_size: 8
+  eval_batch_size: 8
+  gradient_accumulation_steps: 4
+  learning_rate: 1.0e-4
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+  
+  # Learning rate scheduling
+  warmup_steps: 1000
+  warmup_ratio: 0.1
+  lr_scheduler_type: "cosine"
+  lr_scheduler_kwargs:
+    num_cycles: 0.5
+    lr_end: 1.0e-7
+  
+  # Mixed precision and optimization
+  mixed_precision: "fp16"
+  fp16_opt_level: "O1"
+  fp16_loss_scale: 0.0
+  fp16_full_eval: false
+  dataloader_pin_memory: true
+  dataloader_num_workers: 4
+  remove_unused_columns: false
+  group_by_length: true
+  
+  # Memory optimization
+  gradient_checkpointing: true
+  max_memory_MB: 16000
+  low_cpu_mem_usage: true
+  use_cache: false
+  
+  # Data configuration
+  max_seq_length: 32768
+  truncation_side: "right"
+  padding_side: "right"
+  
+  # Logging and saving
+  logging_steps: 100
+  save_steps: 1000
+  eval_steps: 500
+  evaluation_strategy: "steps"
+  save_strategy: "steps"
+  logging_strategy: "steps"
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
+  
+  # DeepSpeed
+  use_deepspeed: true
+
+# Data Configuration
+data:
+  data_dir: "data/processed"
+  train_data_files:
+    - "data/processed/code_samples.jsonl"
+    - "data/processed/xml_samples.jsonl"
+    - "data/processed/mdx_samples.jsonl"
+    - "data/processed/javascript_samples.jsonl"
+  eval_data_files:
+    - "data/processed/eval_code_samples.jsonl"
+    - "data/processed/eval_xml_samples.jsonl"
+  
+  # Data preprocessing
+  tokenizer_name: "microsoft/phi-2"
+  max_train_samples: null
+  max_eval_samples: null
+  preprocessing_num_workers: 4
+  preprocessing_batch_size: 1000
+  
+  # Data filtering
+  min_text_length: 10
+  max_text_length: 32768
+  filter_duplicate_sequences: true
+  filter_out_all_special_tokens: false
+  remove_empty_sequences: true
+  
+  # Data augmentation
+  data_augmentation: false
+  augmentation_probability: 0.1
+  augmentation_types:
+    - "mask_code_tokens"
+    - "shuffle_operations"
+    - "comment_variations"
+
+# Monitoring Configuration
+monitoring:
+  # Weights & Biases
+  use_wandb: true
+  wandb_project: "sheikh-2.5-coder"
+  wandb_entity: null
+  wandb_run_name: null
+  wandb_tags:
+    - "training"
+    - "phi-2"
+    - "code-generation"
+  wandb_notes: null
+  wandb_config: {}
+  
+  # TensorBoard
+  use_tensorboard: true
+  tensorboard_log_dir: "logs/tensorboard"
+  tensorboard_flush_secs: 30
+  
+  # Local logging
+  log_level: "INFO"
+  log_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  log_file: "logs/training.log"
+  log_max_bytes: 10485760
+  log_backup_count: 5
+  
+  # Metrics tracking
+  track_metrics:
+    - "loss"
+    - "perplexity"
+    - "accuracy"
+    - "throughput"
+    - "learning_rate"
+    - "grad_norm"
+    - "memory_usage"
+    - "gpu_utilization"
+  custom_metrics: {}
+
+# Checkpoint Configuration
+checkpoint:
+  checkpoint_dir: "models/checkpoints"
+  output_dir: "models/output"
+  
+  # Checkpoint frequency
+  save_steps: 1000
+  save_total_limit: 10
+  save_safetensors: true
+  
+  # Checkpoint strategy
+  load_best_model_at_end: true
+  metric_for_best_model: "eval_loss"
+  greater_is_better: false
+  
+  # Resume training
+  resume_from_checkpoint: null
+  ignore_data_skip: false
+  
+  # Checkpoint compression
+  compress_checkpoints: true
+  checkpoint_compression_type: "gzip"
+  checkpoint_versioning: true
+  checkpoint_timestamp_format: "%Y%m%d_%H%M%S"
+  
+  # Cloud storage
+  use_cloud_storage: false
+  cloud_storage_provider: "s3"
+  cloud_bucket: null
+  cloud_prefix: "checkpoints/sheikh-2.5-coder/"
+  
+  # Checkpoint validation
+  validate_checkpoints: true
+  checkpoint_validation_interval: 5000
+
+# System Configuration
+system:
+  # GPU configuration
+  gpu_ids: "auto"
+  gpu_memory_fraction: 0.8
+  gpu_memory_reserved: 1000
+  multi_gpu: true
+  device_map: null
+  
+  # CPU configuration
+  cpu_threads: -1
+  cpu_pin_memory: true
+  
+  # Memory configuration
+  max_memory_gb: 32
+  memory_fraction: 0.8
+  garbage_collection: true
+  
+  # Distributed training
+  distributed_backend: "nccl"
+  distributed_init_method: "env://"
+  distributed_rank: 0
+  distributed_world_size: 1
+  
+  # Fault tolerance
+  max_retries: 3
+  retry_delay: 60
+  checkpoint_recovery: true
+  
+  # Environment
+  environment: "development"
+  debug_mode: false
+  seed: 42
+
+# Evaluation Configuration
+evaluation:
+  eval_datasets:
+    - "HumanEval"
+    - "MMLU"
+    - "codex-eval"
+    - "mbpp"
+    - "truthfulqa"
+    - "hellaswag"
+  
+  eval_metrics:
+    - "perplexity"
+    - "bleu"
+    - "rouge"
+    - "code_bleu"
+    - "exact_match"
+    - "pass@k"
+  
+  # Code generation evaluation
+  code_eval_timeout: 30
+  code_eval_num_samples: 1000
+  code_eval_temperature: 0.2
+  code_eval_top_p: 0.95
+  code_eval_max_new_tokens: 512
+  
+  # XML/MDX evaluation
+  xml_eval_samples: 500
+  xml_eval_metrics:
+    - "xml_validity"
+    - "html_validity"
+    - "structure_score"
+    - "content_relevance"
+  
+  # JavaScript evaluation
+  js_eval_samples: 500
+  js_eval_metrics:
+    - "syntax_validity"
+    - "test_pass_rate"
+    - "complexity_score"
+    - "performance_score"

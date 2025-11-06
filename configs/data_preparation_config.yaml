@@ -1,0 +1,274 @@
+# Data Preparation Configuration
+# Sheikh-2.5-Coder Data Processing Settings
+# Updated for comprehensive data preparation pipeline
+
+# Dataset Sources
+datasets:
+  stack_v2:
+    source: "bigcode/the-stack-smol-ids"
+    languages: ["javascript", "typescript", "xml", "html", "css"]
+    max_examples_per_lang: 1000000
+    quality_threshold: 0.75
+    deduplication_threshold: 0.8
+    
+  opencode_instruct:
+    source: "bigcode/instructcodet5p-px"
+    target_size: 50000000
+    quality_filter: true
+    unit_test_validation: true
+    web_dev_focus: true
+    target_distribution:
+      javascript_typescript: 0.40
+      xml: 0.20
+      mdx: 0.15
+      other: 0.25
+    
+  code_search_net:
+    source: "code_search_net"
+    languages: ["javascript", "typescript"]
+    similarity_threshold: 0.6
+    cat_pipeline: true
+    
+  synthetic_data:
+    generation_methods:
+      - "self_instruct"
+      - "evol_instruct" 
+      - "ast_mutation"
+      - "domain_specific"
+    target_count: 145000
+    domain_distribution:
+      xml_configuration: 40000
+      mdx_components: 35000
+      react_hooks: 30000
+      vue_templates: 25000
+      self_instruct: 50000
+
+# Preprocessing Settings
+preprocessing:
+  tokenizer: "microsoft/codebert-base"
+  max_sequence_length: 1024
+  language_tokens:
+    javascript: ["<js>", "</js>", "<function>", "</function>"]
+    typescript: ["<ts>", "</ts>", "<interface>", "</interface>"]
+    xml: ["<xml>", "</xml>", "<element>", "</element>"]
+    html: ["<html>", "</html>", "<tag>", "</tag>"]
+    css: ["<css>", "</css>", "<rule>", "</rule>"]
+    mdx: ["<mdx>", "</mdx>", "<component>", "</component>"]
+
+# Quality Filtering Configuration
+quality_filters:
+  minimum_length: 30
+  maximum_length: 100000
+  quality_score_threshold: 0.7
+  semantic_coherence_threshold: 0.6
+  syntax_validity_threshold: 0.8
+  
+  length_ratio:
+    min: 0.1
+    max: 0.9
+  complexity_score:
+    minimum: 0.3
+  semantic_coherence:
+    minimum: 0.6
+  language_detection:
+    confidence_threshold: 0.85
+  
+  # Language-specific thresholds
+  language_thresholds:
+    javascript:
+      min_length: 50
+      max_length: 50000
+      quality_score: 0.7
+      complexity_threshold: 0.3
+    typescript:
+      min_length: 50
+      max_length: 50000
+      quality_score: 0.75
+      complexity_threshold: 0.35
+    xml:
+      min_length: 30
+      max_length: 30000
+      quality_score: 0.8
+      complexity_threshold: 0.25
+    html:
+      min_length: 100
+      max_length: 40000
+      quality_score: 0.7
+      complexity_threshold: 0.3
+    css:
+      min_length: 50
+      max_length: 20000
+      quality_score: 0.75
+      complexity_threshold: 0.25
+    mdx:
+      min_length: 100
+      max_length: 30000
+      quality_score: 0.8
+      complexity_threshold: 0.4
+
+# Deduplication Settings
+deduplication:
+  method: "minhash_lsh"
+  threshold: 0.8
+  num_perm: 128
+  enable_semantic_deduplication: true
+  content_normalization: true
+
+# Validation Configuration  
+validation:
+  validation_thresholds:
+    data_quality:
+      minimum_avg_quality: 0.75
+      maximum_quality_variance: 0.1
+      minimum_quality_consistency: 0.8
+    language_distribution:
+      javascript_typescript: {"min": 0.30, "max": 0.40}
+      xml_html: {"min": 0.20, "max": 0.30}
+      mdx_markdown: {"min": 0.10, "max": 0.20}
+      css_scss: {"min": 0.08, "max": 0.15}
+      other: {"min": 0.10, "max": 0.20}
+    size_distribution:
+      min_avg_length: 100
+      max_avg_length: 10000
+      max_length_variance: 5000
+    performance_targets:
+      duplication_rate: {"max": 0.05}
+      syntax_validity: {"min": 0.90}
+      semantic_coherence: {"min": 0.75}
+      task_completion_rate: {"min": 0.85}
+
+# Performance Targets
+targets:
+  total_training_tokens: 500000000000  # 500B tokens
+  language_distribution:
+    javascript_typescript: 0.35
+    xml_html: 0.25
+    mdx_markdown: 0.15
+    css_scss: 0.10
+    other: 0.15
+  
+  quality_targets:
+    data_quality: 0.85
+    duplication_rate: 0.05
+    language_accuracy: 0.95
+    syntax_validity: 0.90
+    semantic_coherence: 0.75
+  
+  processing_targets:
+    stack_v2_size: 2100  # GB after processing
+    instruction_pairs: 50000000
+    synthetic_examples: 145000
+    total_unique_examples: 65000000
+
+# Pipeline Configuration
+pipeline:
+  phases:
+    - name: "dataset_acquisition"
+      description: "Download and initial processing of source datasets"
+      duration_weeks: 4
+    - name: "quality_filtering"  
+      description: "Apply quality filters and deduplication"
+      duration_weeks: 4
+    - name: "synthetic_generation"
+      description: "Generate synthetic training data"
+      duration_weeks: 4
+    - name: "integration_validation"
+      description: "Integrate datasets and validate quality"
+      duration_weeks: 4
+    - name: "final_preparation"
+      description: "Final dataset preparation and optimization"
+      duration_weeks: 4
+  
+  # Parallel processing settings
+  parallel_processing:
+    enabled: true
+    max_workers: 8
+    chunk_size: 1000
+    batch_size: 100
+  
+  # Caching settings
+  caching:
+    enabled: true
+    cache_dir: "cache/processed_datasets"
+    cache_expiry_hours: 168  # 1 week
+  
+  # Logging settings
+  logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    log_files:
+      - "logs/data_preparation_pipeline.log"
+      - "logs/stack_v2_processor.log"
+      - "logs/instruction_processor.log"
+      - "logs/synthetic_data_generator.log"
+      - "logs/quality_filters.log"
+      - "logs/data_validation.log"
+
+# Output Settings
+output:
+  base_directory: "data"
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  tokenized_data: "data/tokenized"
+  validation_reports: "evaluation/validation_reports"
+  quality_reports: "evaluation/quality_reports"
+  logs: "logs"
+  
+  # Final dataset outputs
+  final_datasets:
+    train_dataset: "data/final/train_dataset"
+    validation_dataset: "data/final/validation_dataset" 
+    test_dataset: "data/final/test_dataset"
+    data_cards: "data/final/data_cards"
+  
+  # Dataset cards configuration
+  dataset_cards:
+    generate_language_specific: true
+    include_statistics: true
+    include_quality_metrics: true
+    include_examples: true
+
+# Monitoring and Reporting
+monitoring:
+  progress_tracking: true
+  quality_monitoring: true
+  performance_monitoring: true
+  
+  # Metrics to track
+  metrics:
+    - "processing_rate"
+    - "quality_score_distribution"
+    - "language_distribution"
+    - "duplicate_rate"
+    - "validation_scores"
+    - "benchmark_performance"
+  
+  # Reporting frequency
+  reporting:
+    progress_reports: "daily"
+    quality_reports: "weekly" 
+    final_report: "end_of_pipeline"
+  
+  # Alert thresholds
+  alerts:
+    quality_drop_threshold: 0.1
+    processing_failure_threshold: 0.05
+    performance_degradation_threshold: 0.15
+
+# Resource Configuration
+resources:
+  memory_limit_gb: 32
+  disk_space_gb: 1000
+  cpu_cores: 16
+  
+  # Processing optimization
+  optimization:
+    use_multiprocessing: true
+    memory_efficient: true
+    checkpoint_frequency: 10000
+    
+  # Storage settings
+  storage:
+    use_compression: true
+    parallel_writes: true
+    backup_frequency: "daily"

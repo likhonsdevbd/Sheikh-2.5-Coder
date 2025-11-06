@@ -1,0 +1,24 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "language": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "total_examples": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "quality_filtered": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "deduplicated": {
+      "dtype": "int64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}

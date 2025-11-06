@@ -1,0 +1,555 @@
+# Deployment Configuration for Sheikh-2.5-Coder
+# This file defines the complete automated deployment pipeline configuration
+
+project:
+  name: "Sheikh-2.5-Coder"
+  display_name: "Sheikh 2.5 Coder"
+  description: "Advanced code generation language model fine-tuned for programming tasks"
+  version: "2.5.0"
+  base_model: "microsoft/phi-2"
+  license: "MIT"
+  repository:
+    github: "sheikh-team/Sheikh-2.5-Coder"
+    huggingface: "sheikh-team/Sheikh-2.5-Coder"
+    homepage: "https://sheikh-team.github.io/Sheikh-2.5-Coder"
+
+# Model Configuration
+model:
+  architecture: "transformer"
+  parameters: "2.7B"
+  context_length: 2048
+  vocab_size: 51200
+  training_method: "LoRA"
+  lora_rank: 16
+  lora_alpha: 32
+  lora_dropout: 0.1
+  max_position_embeddings: 2048
+  hidden_size: 2560
+  num_hidden_layers: 32
+  num_attention_heads: 32
+  intermediate_size: 10240
+  hidden_act: "gelu"
+  torch_dtype: "float16"
+  trust_remote_code: true
+
+# Deployment Targets
+deployment_targets:
+  huggingface_hub:
+    enabled: true
+    repo_id: "sheikh-team/Sheikh-2.5-Coder"
+    private: false
+    create_release: true
+    upload_model_card: true
+    upload_examples: true
+    tags:
+      - "code-generation"
+      - "programming"
+      - "transformers"
+      - "python"
+      - "lora"
+    pipeline_tags: ["text-generation", "text2text-generation"]
+    
+  github_repository:
+    enabled: true
+    owner: "sheikh-team"
+    repo: "Sheikh-2.5-Coder"
+    create_releases: true
+    create_tags: true
+    upload_assets: true
+    update_documentation: true
+    
+  onnx_hub:
+    enabled: true
+    optimize_for_gpu: true
+    optimize_for_cpu: true
+    opset_version: 17
+    
+  model_zoo:
+    enabled: false  # Enable if you have a model zoo platform
+    
+  package_registries:
+    pypi:
+      enabled: true
+      package_name: "sheikh-2.5-coder"
+    conda:
+      enabled: true
+      channel: "sheikh-team"
+
+# Model Variants Configuration
+model_variants:
+  base:
+    name: "sheikh-2.5-coder-base"
+    description: "Base model with full precision"
+    format: "safetensors"
+    size_gb: 5.4
+    memory_requirement_gb: 8
+    quantization: "none"
+    optimization: "none"
+    platform: "universal"
+    
+  int8:
+    name: "sheikh-2.5-coder-int8"
+    description: "8-bit quantized model for reduced memory usage"
+    format: "safetensors"
+    size_gb: 2.7
+    memory_requirement_gb: 4
+    quantization: "int8"
+    optimization: "memory_optimization"
+    platform: "universal"
+    compression_ratio: 0.5
+    
+  int4:
+    name: "sheikh-2.5-coder-int4"
+    description: "4-bit quantized model for maximum memory efficiency"
+    format: "safetensors"
+    size_gb: 1.35
+    memory_requirement_gb: 2
+    quantization: "int4"
+    optimization: "memory_optimization"
+    platform: "universal"
+    compression_ratio: 0.25
+    
+  onnx:
+    name: "sheikh-2.5-coder-onnx"
+    description: "ONNX optimized model for cross-platform inference"
+    format: "onnx"
+    size_gb: "variable"
+    memory_requirement_gb: 4
+    quantization: "none"
+    optimization: "onnx_optimization"
+    platform: "cross_platform"
+    
+  tensorrt:
+    name: "sheikh-2.5-coder-tensorrt"
+    description: "TensorRT optimized model for NVIDIA GPUs"
+    format: "tensorrt"
+    size_gb: 4.0
+    memory_requirement_gb: 6
+    quantization: "fp16"
+    optimization: "tensorrt_optimization"
+    platform: "nvidia_gpu"
+    
+  coreml:
+    name: "sheikh-2.5-coder-coreml"
+    description: "CoreML model for Apple devices"
+    format: "coreml"
+    size_gb: 3.0
+    memory_requirement_gb: 4
+    quantization: "none"
+    optimization: "coreml_optimization"
+    platform: "apple"
+    
+  tflite:
+    name: "sheikh-2.5-coder-tflite"
+    description: "TensorFlow Lite model for mobile deployment"
+    format: "tflite"
+    size_gb: 2.5
+    memory_requirement_gb: 3
+    quantization: "dynamic"
+    optimization: "tflite_optimization"
+    platform: "mobile"
+    
+  gguf:
+    name: "sheikh-2.5-coder-gguf"
+    description: "GGUF format for CPU inference optimization"
+    format: "gguf"
+    size_gb: 2.0
+    memory_requirement_gb: 3
+    quantization: "int4"
+    optimization: "gguf_optimization"
+    platform: "cpu_optimized"
+
+# Release Management
+release_management:
+  versioning:
+    strategy: "semantic"
+    format: "major.minor.patch"
+    prerelease_patterns:
+      - "alpha.{n}"
+      - "beta.{n}"
+      - "rc.{n}"
+    auto_increment_prerelease: true
+    
+  changelog:
+    enabled: true
+    format: "markdown"
+    include_commits: true
+    include_performance_metrics: true
+    include_breaking_changes: true
+    
+  release_notes:
+    auto_generate: true
+    include_features: true
+    include_fixes: true
+    include_performance: true
+    include_migration_guide: true
+    
+  git_integration:
+    create_branches: true
+    create_tags: true
+    push_to_remote: true
+    merge_strategy: "squash"
+
+# Quality Gates Configuration
+quality_gates:
+  enabled: true
+  fail_fast: true
+  continue_on_warning: true
+  
+  required_tests:
+    - name: "generation_quality"
+      timeout_seconds: 300
+      threshold_success_rate: 80.0
+      
+    - name: "inference_speed"
+      timeout_seconds: 600
+      threshold_tokens_per_second: 10.0
+      
+    - name: "memory_usage"
+      timeout_seconds: 300
+      threshold_max_memory_gb: 8.0
+      
+    - name: "output_validation"
+      timeout_seconds: 300
+      threshold_validation_rate: 70.0
+      
+  optional_tests:
+    - name: "model_consistency"
+      timeout_seconds: 300
+      threshold_consistency_rate: 60.0
+      
+    - name: "error_handling"
+      timeout_seconds: 300
+      threshold_error_handling_rate: 80.0
+      
+  test_prompts:
+    - "def fibonacci(n):"
+    - "class Calculator:"
+    - "def binary_search(arr, target):"
+    - "# Create a REST API endpoint"
+    - "def factorial(n):"
+    - "class Node:"
+    - "def bubble_sort(lst):"
+    - "# Create a web scraper"
+    - "def linear_regression(X, y):"
+    - "class DatabaseConnection:"
+
+# Documentation Configuration
+documentation:
+  enabled: true
+  output_directory: "docs"
+  include_api_reference: true
+  include_tutorials: true
+  include_examples: true
+  include_deployment_guides: true
+  
+  auto_generate:
+    model_cards: true
+    api_docs: true
+    tutorials: true
+    examples: true
+    
+  templates:
+    model_card: "comprehensive"
+    api_doc: "detailed"
+    tutorial: "step_by_step"
+    
+  include_performance_benchmarks: true
+  include_comparison_tables: true
+  include_troubleshooting: true
+
+# Asset Management
+asset_management:
+  base_directory: "deployment_assets"
+  cleanup_old_assets: true
+  retention_days: 90
+  
+  artifacts:
+    model_files:
+      - "*.safetensors"
+      - "config.json"
+      - "tokenizer.*"
+      - "generation_config.json"
+      
+    documentation:
+      - "README.md"
+      - "*.md"
+      - "docs/**/*"
+      
+    examples:
+      - "examples/**/*.py"
+      - "notebooks/**/*.ipynb"
+      
+    tests:
+      - "tests/**/*.py"
+      - "evaluation/**/*.json"
+      
+  compression:
+    enabled: true
+    format: "zip"
+    include_checksums: true
+    
+  versioning:
+    include_version_in_path: true
+    timestamp_format: "YYYYMMDD_HHMMSS"
+
+# Automation Triggers
+automation_triggers:
+  manual:
+    enabled: true
+    description: "Manual deployment trigger"
+    
+  training_completion:
+    enabled: true
+    watch_directory: "checkpoints"
+    trigger_pattern: "*final*"
+    require_quality_gates: true
+    
+  scheduled:
+    enabled: false
+    schedule: "weekly"
+    day: "sunday"
+    time: "02:00"
+    
+  performance_threshold:
+    enabled: true
+    metric: "success_rate"
+    threshold: 85.0
+    comparison: "greater_than"
+    
+  quality_gate_pass:
+    enabled: true
+    required_gates: ["generation_quality", "inference_speed"]
+    
+  git_push:
+    enabled: false
+    branches: ["main"]
+    tags: ["v*"]
+
+# Monitoring and Alerting
+monitoring:
+  deployment_notifications:
+    enabled: true
+    channels:
+      - type: "email"
+        recipients: ["deployment@sheikh-team.com"]
+      - type: "slack"
+        webhook_url: "${SLACK_WEBHOOK_URL}"
+      - type: "github_discussion"
+        enabled: true
+        
+  performance_monitoring:
+    enabled: true
+    track_downloads: true
+    track_usage: true
+    track_errors: true
+    
+  alerting:
+    deployment_failure: true
+    performance_degradation: true
+    quality_gate_failure: true
+    high_error_rate: true
+    
+  metrics:
+    collection_interval: 3600  # seconds
+    retention_days: 30
+    export_format: "json"
+
+# Environment Configuration
+environments:
+  development:
+    debug: true
+    verbose_logging: true
+    skip_quality_gates: false
+    cache_models: false
+    
+  staging:
+    debug: false
+    verbose_logging: true
+    skip_quality_gates: false
+    cache_models: true
+    
+  production:
+    debug: false
+    verbose_logging: false
+    skip_quality_gates: false
+    cache_models: true
+    backup_before_deployment: true
+
+# Security Configuration
+security:
+  model_validation: true
+  validate_checksums: true
+  scan_for_malicious_code: true
+  verify_dependencies: true
+  
+  access_control:
+    require_api_keys: true
+    rate_limiting: true
+    ip_whitelist: []
+    
+  secrets_management:
+    use_environment_variables: true
+    encrypt_sensitive_data: true
+    rotate_secrets: true
+
+# Performance Optimization
+performance:
+  parallel_uploads: 4
+  chunk_size_mb: 100
+  retry_attempts: 3
+  retry_delay_seconds: 30
+  
+  optimization:
+    compress_models: true
+    optimize_for_target_hardware: true
+    enable_graph_optimization: true
+    
+  caching:
+    enable_local_cache: true
+    cache_size_gb: 10
+    cache_ttl_hours: 24
+
+# Integration Configuration
+integrations:
+  huggingface_hub:
+    api_token_env: "HF_TOKEN"
+    upload_timeout: 3600
+    create_pr: false
+    
+  github:
+    api_token_env: "GITHUB_TOKEN"
+    create_releases: true
+    upload_assets: true
+    
+  docker:
+    build_images: true
+    push_to_registry: true
+    image_registry: "ghcr.io"
+    
+  cloud_storage:
+    enabled: false
+    provider: "aws_s3"
+    bucket: "sheikh-model-artifacts"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "json"
+  output:
+    - type: "file"
+      path: "logs/deployment.log"
+      rotation: "daily"
+      retention_days: 30
+    - type: "console"
+      enabled: true
+      
+  structured_logging: true
+  include_metrics: true
+  include_performance_data: true
+
+# Error Handling
+error_handling:
+  retry_failed_operations: true
+  max_retries: 3
+  retry_delay: 60
+  
+  failure_strategies:
+    quality_gate_failure: "stop_deployment"
+    model_validation_failure: "stop_deployment"
+    upload_failure: "retry_then_stop"
+    documentation_failure: "continue_with_warning"
+    
+  notification_on_failure: true
+  create_issue_on_failure: true
+
+# Compliance and Audit
+compliance:
+  generate_audit_log: true
+  include_model_metadata: true
+  track_data_lineage: false
+  
+  documentation_requirements:
+    include_license: true
+    include_citation: true
+    include_usage_guidelines: true
+    
+  export_compliance_report: true
+
+# Default Values
+defaults:
+  model_format: "safetensors"
+  quantization: "none"
+  optimization_level: "O1"
+  max_generation_length: 100
+  temperature: 0.7
+  do_sample: true
+  
+# Feature Flags
+feature_flags:
+  enable_model_variants: true
+  enable_automated_testing: true
+  enable_performance_monitoring: true
+  enable_git_integration: true
+  enable_docker_deployment: false
+  enable_cloud_deployment: false
+  
+# Custom Scripts
+custom_scripts:
+  pre_deployment:
+    - "scripts/pre_deployment_checks.py"
+    
+  post_deployment:
+    - "scripts/post_deployment_validation.py"
+    - "scripts/update_monitoring.py"
+    
+  cleanup:
+    - "scripts/cleanup_old_artifacts.py"
+
+# API Configuration
+api:
+  base_url: "https://api.sheikh-team.com"
+  version: "v1"
+  rate_limiting:
+    requests_per_minute: 100
+    burst: 20
+    
+  authentication:
+    required: true
+    token_expiry_hours: 24
+    
+# Deployment Pipeline Stages
+pipeline_stages:
+  - name: "validation"
+    required: true
+    timeout_minutes: 30
+    
+  - name: "model_optimization"
+    required: true
+    timeout_minutes: 60
+    
+  - name: "quality_testing"
+    required: true
+    timeout_minutes: 45
+    
+  - name: "documentation_generation"
+    required: true
+    timeout_minutes: 20
+    
+  - name: "asset_packaging"
+    required: true
+    timeout_minutes: 15
+    
+  - name: "deployment_targets"
+    required: true
+    timeout_minutes: 30
+    
+  - name: "monitoring_setup"
+    required: false
+    timeout_minutes: 10
+    
+  - name: "notification"
+    required: true
+    timeout_minutes: 5
+
+# End of deployment configuration

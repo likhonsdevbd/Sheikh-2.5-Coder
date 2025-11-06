@@ -1,0 +1,171 @@
+{
+  "components": {
+    "main_pipeline": {
+      "exists": true,
+      "path": "/workspace/Sheikh-2.5-Coder/scripts/data_preparation_pipeline.py",
+      "size_bytes": 42262,
+      "lines": 1058,
+      "status": "\u2705 OK"
+    },
+    "stack_v2_processor": {
+      "exists": true,
+      "path": "/workspace/Sheikh-2.5-Coder/scripts/stack_v2_processor.py",
+      "size_bytes": 25721,
+      "lines": 738,
+      "status": "\u2705 OK"
+    },
+    "instruction_processor": {
+      "exists": true,
+      "path": "/workspace/Sheikh-2.5-Coder/scripts/instruction_processor.py",
+      "size_bytes": 47405,
+      "lines": 1191,
+      "status": "\u2705 OK"
+    },
+    "synthetic_generator": {
+      "exists": true,
+      "path": "/workspace/Sheikh-2.5-Coder/scripts/synthetic_data_generator.py",
+      "size_bytes": 63816,
+      "lines": 1841,
+      "status": "\u2705 OK"
+    },
+    "quality_filters": {
+      "exists": true,
+      "path": "/workspace/Sheikh-2.5-Coder/scripts/quality_filters.py",
+      "size_bytes": 43198,
+      "lines": 1108,
+      "status": "\u2705 OK"
+    },
+    "data_validation": {
+      "exists": true,
+      "path": "/workspace/Sheikh-2.5-Coder/scripts/data_validation.py",
+      "size_bytes": 46852,
+      "lines": 1155,
+      "status": "\u2705 OK"
+    }
+  },
+  "configurations": {
+    "main_config": {
+      "exists": true,
+      "path": "/workspace/Sheikh-2.5-Coder/configs/data_preparation_config.yaml",
+      "sections": [
+        "datasets",
+        "preprocessing",
+        "quality_filters",
+        "deduplication",
+        "validation",
+        "targets",
+        "pipeline",
+        "output",
+        "monitoring",
+        "resources"
+      ],
+      "missing_sections": [],
+      "status": "\u2705 OK"
+    },
+    "data_prep_config": {
+      "exists": true,
+      "path": "/workspace/Sheikh-2.5-Coder/configs/data_prep_config.yaml",
+      "sections": [
+        "datasets",
+        "preprocessing",
+        "deduplication",
+        "quality_filters",
+        "synthetic_generation",
+        "targets",
+        "output"
+      ],
+      "missing_sections": [],
+      "status": "\u2705 OK"
+    }
+  },
+  "dependencies": {
+    "datasets": {
+      "required": true,
+      "available": true,
+      "package": "huggingface datasets",
+      "status": "\u2705 AVAILABLE"
+    },
+    "yaml": {
+      "required": true,
+      "available": true,
+      "package": "PyYAML",
+      "status": "\u2705 AVAILABLE"
+    },
+    "numpy": {
+      "required": true,
+      "available": true,
+      "package": "numpy",
+      "status": "\u2705 AVAILABLE"
+    },
+    "tqdm": {
+      "required": true,
+      "available": true,
+      "package": "tqdm",
+      "status": "\u2705 AVAILABLE"
+    },
+    "pandas": {
+      "required": true,
+      "available": true,
+      "package": "pandas",
+      "status": "\u2705 AVAILABLE"
+    },
+    "datasketch": {
+      "required": true,
+      "available": true,
+      "package": "datasketch",
+      "status": "\u2705 AVAILABLE"
+    },
+    "matplotlib": {
+      "required": false,
+      "available": true,
+      "package": "matplotlib",
+      "status": "\u2705 AVAILABLE"
+    },
+    "seaborn": {
+      "required": false,
+      "available": true,
+      "package": "seaborn",
+      "status": "\u2705 AVAILABLE"
+    },
+    "nltk": {
+      "required": false,
+      "available": true,
+      "package": "nltk",
+      "status": "\u2705 AVAILABLE"
+    },
+    "openai": {
+      "required": false,
+      "available": false,
+      "package": "openai",
+      "status": "\u26a0\ufe0f  NOT INSTALLED"
+    }
+  },
+  "integration": {
+    "import": {
+      "status": "\u2705 CAN LOAD",
+      "message": "Main pipeline can be imported"
+    }
+  },
+  "test_execution": {
+    "config_loading": {
+      "status": "\u2705 SUCCESS",
+      "config_sections": [
+        "datasets",
+        "preprocessing",
+        "quality_filters",
+        "deduplication",
+        "validation",
+        "targets",
+        "pipeline",
+        "output",
+        "monitoring",
+        "resources"
+      ]
+    },
+    "config_validation": {
+      "status": "\u2705 SUCCESS",
+      "message": "Configuration is valid"
+    }
+  },
+  "overall_status": "\u2705 FULLY IMPLEMENTED"
+}
